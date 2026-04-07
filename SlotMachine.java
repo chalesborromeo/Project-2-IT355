@@ -26,21 +26,34 @@ public class SlotMachine {
 		for(int i=0;i<3;i++)
 			wheels[i] = spinWheel();
 		wheels[3] = specialWheel();
+		if(outcome==1) {
 		//Guaranteeing win
-			int change = (int)Math.random()*3;
+			int change = (int)(Math.random()*3);
 			switch(change) {
 			case 0:
 				wheels[0]=wheels[1];
+				break;
 			case 1:
 				wheels[1]=wheels[2];
+				break;
 			case 2:
 				wheels[0]=wheels[2];
+				break;
 			}
+			}
+		else if(outcome==0) {
+		//Guaranteeing loss
+			wheels[3]='1';
+			while(wheels[0]==wheels[1]||wheels[1]==wheels[2]||wheels[0]==wheels[2]) {
+				for(int i=0;i<3;i++)
+					wheels[i] = spinWheel();
+			}
+		}
 		
-		System.out.println("-------------");
+		System.out.println("---------");
 		System.out.println("|"+wheels[0]+"|"+
 		wheels[1]+"|"+wheels[2]+"|"+wheels[3]+"|");			
-		System.out.println("-------------");
+		System.out.println("---------");
 			
 		//Checking win conditions
 		return results(wheels);
@@ -50,7 +63,7 @@ public class SlotMachine {
 		double score = 0;
 		//All 3 match
 		if(wheels[0] == wheels[1]&&wheels[1] == wheels[2]) {
-			
+			score += threeMatch(wheels[0]);
 		}
 		
 		//Only 2 match
@@ -80,30 +93,35 @@ public class SlotMachine {
 					if(1>highestValue) {
 						highestValue = 1;
 						wheelslot = i;
+						break;
 					}
 				case 'G':
 					if(2>highestValue) {
 						highestValue = 2;
 						wheelslot = i;
+						break;
 					}
 				case 'B':
 					if(3>highestValue) {
 						highestValue = 3;
 						wheelslot = i;
+						break;
 					}
 				case '7':
 					if(4>highestValue) {
 						highestValue = 4;
 						wheelslot = i;
+						break;
 					}
 				default:
 					if(1>highestValue) {
 						highestValue = 1;
 						wheelslot = i;
+						break;
 					}
 				}
 			}
-			System.out.print("Wildcard! Two ");
+			System.out.print("Wildcard! ");
 			score = twoMatch(wheels[wheelslot]);
 		}
 		
@@ -113,11 +131,23 @@ public class SlotMachine {
 			score += stakes*0.5;
 		}
 		
+		if(score==0) 
+			System.out.println("No prize...");
+		
+		else if(wheels[3]=='2') {
+			System.out.println("x2 Bonus!");
+			score *= 2;
+		}
+		else if(wheels[3]=='3') {
+			System.out.println("3x Bonus!");
+			score *= 3;
+		}
+		
 		return (int)score;
 	}
 	
 	private char spinWheel() {
-		int r = (int)Math.random()*5;
+		int r = (int)(Math.random()*5);
 		switch(r) {
 		case 0: 
 			return 'C'; //For 'Cherry'
@@ -130,12 +160,12 @@ public class SlotMachine {
 		case 4:
 			return '7'; 
 		default:
-			return 'L'; //This shouldn't happen
+			return '0'; //This shouldn't happen
 		}
 	}
 	
 	private char specialWheel() {
-		int r = (int)Math.random()*4;
+		int r = (int)(Math.random()*4);
 		switch(r) {
 		case 0: 
 			return '1'; //Standard
@@ -146,7 +176,7 @@ public class SlotMachine {
 		case 3:
 			return '3'; //x3 earnings
 		default:
-			return '1'; //This shouldn't happen
+			return '0'; //This shouldn't happen
 		}
 	}
 	
