@@ -1,9 +1,23 @@
+
+import java.security.SecureRandom;
+
+
 public class SlotMachine {
 	private int stakes;
+	private final SecureRandom rand = new SecureRandom();
+	/**
+	 * Constructs a new slot machine
+	 * 
+	 * @param stake The base amount of score the machine gives
+	 */
 	SlotMachine(int stake){
 		stakes = stake;
 	}
-	
+	/**
+	 * Simulates a spinning all wheels of the slot machine
+	 * 
+	 * @return the total result of the spin
+	 */
 	public int Spin() {
 		//Selecting wheel outcomes
 		char wheels[] = new char[4];
@@ -19,7 +33,13 @@ public class SlotMachine {
 		//Checking win conditions
 		return results(wheels);
 	}
-	
+	/**
+	 * Simulates a spin with a predetermined outcome
+	 * 
+	 * @param outcome 1 represents a win, 0 represents a loss
+	 * 
+	 * @return the total result of the rigged spin
+	 */
 	public int riggedSpin(int outcome) {
 		//Selecting wheel outcomes
 		char wheels[] = new char[4];
@@ -28,7 +48,7 @@ public class SlotMachine {
 		wheels[3] = specialWheel();
 		if(outcome==1) {
 		//Guaranteeing win
-			int change = (int)(Math.random()*3);
+			int change = (int)(rand.nextInt(3));
 			switch(change) {
 			case 0:
 				wheels[0]=wheels[1];
@@ -58,7 +78,13 @@ public class SlotMachine {
 		//Checking win conditions
 		return results(wheels);
 	}
-	
+	/**
+	 * Outputs the results of given a set of wheels
+	 * 
+	 * @param wheels the character values of the wheels
+	 * 
+	 * @return the final score of the given wheels
+	 */
 	private int results(char[] wheels) {
 		double score = 0;
 		//All 3 match
@@ -145,9 +171,13 @@ public class SlotMachine {
 		
 		return (int)score;
 	}
-	
+	/**
+	 * Simulates spinning one wheel on the slot machine
+	 * 
+	 * @return A character coresponding to a symbol on the wheel
+	 */
 	private char spinWheel() {
-		int r = (int)(Math.random()*5);
+		int r = (int)(rand.nextInt(5));
 		switch(r) {
 		case 0: 
 			return 'C'; //For 'Cherry'
@@ -163,9 +193,13 @@ public class SlotMachine {
 			return '0'; //This shouldn't happen
 		}
 	}
-	
+	/**
+	 * Simulates spining the special wheel
+	 * 
+	 * @return A character representing the landed on symbol
+	 */
 	private char specialWheel() {
-		int r = (int)(Math.random()*4);
+		int r = (int)(rand.nextInt(4));
 		switch(r) {
 		case 0: 
 			return '1'; //Standard
@@ -179,7 +213,13 @@ public class SlotMachine {
 			return '0'; //This shouldn't happen
 		}
 	}
-	
+	/**
+	 * Returns the value of 3 matched symbols
+	 * 
+	 * @param matched The character that has been matched 3 times in a row
+	 * 
+	 * @return A double representing the amount gained
+	 */
 	private double threeMatch(char matched) {
 		System.out.print("Three ");
 		switch(matched) {
@@ -206,7 +246,13 @@ public class SlotMachine {
 			return 0;
 		}
 	}
-	
+	/**
+	 * Returns the value of 2 matched symbols
+	 * 
+	 * @param matched The character that has been matched 2 times in a row
+	 * 
+	 * @return A double representing the amount gained
+	 */
 	private double twoMatch(char matched) {
 		System.out.print("Two ");
 		switch(matched) {
