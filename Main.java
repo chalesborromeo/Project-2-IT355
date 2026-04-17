@@ -1,0 +1,75 @@
+import java.util.Scanner;
+
+// Demo wiring for Charles's CWE modules. This ties the existing
+// SlotMachine game into a login / session / audit-logged flow so
+// each of the 5 CWEs can be observed end-to-end.
+public class Main {
+    private static final int STAKE = 5;
+
+    public static void main(String[] args) throws Exception {
+        EncryptionService crypto = new EncryptionService();
+        SessionManager sessions = new SessionManager();
+
+        try (UserDatabase db = new UserDatabase(crypto);
+             Scanner in = new Scanner(System.in)) {
+
+            // Seed a demo account on first run. Rachel's CWE-836 module
+            // supplies the real password hashing; we use a stub so the
+            // two pieces can be swapped without touching this file.
+            if (db.findUserId("alice", hashStub("hunter2")) == null) {
+                db.createUser("alice", hashStub("hunter2"), 100);
+            }
+
+            System.out.print("username: ");
+            String user = in.nextLine().trim();
+            System.out.print("password: ");
+            String pass = in.nextLine().trim();
+
+            Integer uid = db.findUserId(user, hashStub(pass));
+            if (uid == null) {
+                SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, user, null);
+                System.out.println("Login failed.");
+                return;
+            }
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, user, null);
+            String sid = sessions.login(uid, user);
+
+            SlotMachine machine = new SlotMachine(STAKE);
+            while (true) {
+                SessionManager.Session s = sessions.validate(sid);
+                if (s == null) {
+                    System.out.println("Session expired — please log in again.");
+                    break;
+                }
+                int balance = db.getBalance(s.userId());
+                System.out.println("Balance: " + balance);
+                System.out.print("spin / quit > ");
+                String cmd = in.nextLine().trim();
+                if (cmd.equalsIgnoreCase("quit")) break;
+                if (!cmd.equalsIgnoreCase("spin")) continue;
+                if (balance < STAKE) {
+                    System.out.println("Out of credits.");
+                    break;
+                }
+
+                int winnings = machine.Spin();
+                int newBalance = balance - STAKE + winnings;
+                db.updateBalance(s.userId(), newBalance);
+                db.recordSpin(s.userId(), STAKE, winnings);
+
+                // Flag unusually large wins for manual review (CWE-778).
+                if (winnings >= STAKE * 7) {
+                    SecurityLogger.log(SecurityLogger.Event.LARGE_WIN, user,
+                            "stake=" + STAKE + " winnings=" + winnings);
+                }
+            }
+            sessions.logout(sid);
+        }
+    }
+
+    // Placeholder — Rachel's CWE-836 implementation swaps this for a
+    // real salted hash comparison.
+    private static String hashStub(String password) {
+        return "stub:" + password;
+    }
+}
