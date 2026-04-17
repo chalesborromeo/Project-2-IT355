@@ -10,16 +10,15 @@
 
 ## Running the demo
 
-Requires **Java 11+** and the `sqlite-jdbc` driver.
+Requires **Java 11+** and the `sqlite-jdbc` driver (already vendored in `lib/`).
 
-1. Download `sqlite-jdbc-3.47.1.0.jar` (or any recent 3.x build) from Maven Central:
-   https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/
-2. Put it in the project root.
-3. Compile and run:
+**VSCode (Red Hat Java extension):** just run `Main.java` — `.vscode/settings.json` adds `lib/**/*.jar` to the classpath automatically.
+
+**Command line:**
 
 ```sh
-javac -cp sqlite-jdbc-3.47.1.0.jar *.java
-java  -cp .:sqlite-jdbc-3.47.1.0.jar Main
+javac -cp "lib/sqlite-jdbc-3.47.1.0.jar" *.java
+java  -cp ".:lib/sqlite-jdbc-3.47.1.0.jar" Main
 ```
 
 On first run a demo user `alice` / `hunter2` is seeded with 100 credits.

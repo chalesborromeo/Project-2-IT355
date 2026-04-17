@@ -62,6 +62,19 @@ public class UserDatabase implements AutoCloseable {
         }
     }
 
+    public boolean usernameExists(String username) {
+        String sql = "SELECT 1 FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
+            return false;
+        }
+    }
+
     public void createUser(String username, String passwordHash, int initialBalance) {
         String sql = "INSERT INTO users(username, password_hash, balance_enc) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
