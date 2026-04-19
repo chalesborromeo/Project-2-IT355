@@ -10,8 +10,8 @@ import java.sql.Statement;
 // concatenated into a SQL string.
 //
 // CWE-312 (Cleartext Storage of Sensitive Information): the account
-// balance is sensitive financial data, so it is persisted as AES-GCM
-// ciphertext via EncryptionService rather than as plain integers.
+// balance and security question answers are persisted as AES-GCM
+// ciphertext via EncryptionService rather than as plaintext.
 //
 // NOTE: requires sqlite-jdbc on the classpath — see README.md.
 public class UserDatabase implements AutoCloseable {
@@ -26,14 +26,13 @@ public class UserDatabase implements AutoCloseable {
 
     private void initSchema() throws SQLException {
         try (Statement s = conn.createStatement()) {
+            // Create tables with base schema if they don't exist.
             s.execute(
                 "CREATE TABLE IF NOT EXISTS users (" +
                 "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "  username TEXT UNIQUE NOT NULL," +
                 "  password_hash TEXT NOT NULL," +
                 "  balance_enc TEXT NOT NULL" +
-                "  security_questions TEXT," +
-                "  security_answers_enc TEXT" +
                 ")");
             s.execute(
                 "CREATE TABLE IF NOT EXISTS spin_history (" +
@@ -44,12 +43,26 @@ public class UserDatabase implements AutoCloseable {
                 "  ts TEXT DEFAULT CURRENT_TIMESTAMP," +
                 "  FOREIGN KEY(user_id) REFERENCES users(id)" +
                 ")");
+
+            addColumnIfMissing(s, "users", "security_questions",    "TEXT");
+            addColumnIfMissing(s, "users", "security_answers_enc",  "TEXT");
         }
     }
 
-    // CWE-89: username comes from the user, but is bound to '?' — the DB
-    // driver handles escaping, so "' OR '1'='1" is treated as a literal
-    // username, not as SQL syntax.
+    /**
+     * Attempts to add a column to a table. Silently ignores the error if the
+     * column already exists.
+     */
+    private void addColumnIfMissing(Statement s, String table, String column, String type) {
+        try {
+            s.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
+        } catch (SQLException e) {
+            if (!e.getMessage().toLowerCase().contains("duplicate column name")) {
+                throw new RuntimeException("Schema migration failed for column: " + column, e);
+            }
+        }
+    }
+
     public Integer findUserId(String username, String passwordHash) {
         String sql = "SELECT id FROM users WHERE username = ? AND password_hash = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -130,9 +143,14 @@ public class UserDatabase implements AutoCloseable {
         }
     }
 
-    public String getPasswordHash(String username){
+    /**
+     * Returns the stored password hash for a given username, or null if the
+     * user does not exist. Used by UserAccountService to load credentials
+     * before delegating to PasswordManager.
+     */
+    public String getPasswordHash(String username) {
         String sql = "SELECT password_hash FROM users WHERE username = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)){
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getString("password_hash") : null;
@@ -143,6 +161,11 @@ public class UserDatabase implements AutoCloseable {
         }
     }
 
+    /**
+     * Updates the password hash for a given username. Called after a
+     * successful PasswordManager.resetPassword() flow so the new hash is
+     * persisted to the database.
+     */
     public void updatePasswordHash(String username, String newHash) {
         String sql = "UPDATE users SET password_hash = ? WHERE username = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
