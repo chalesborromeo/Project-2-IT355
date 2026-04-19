@@ -25,9 +25,16 @@ public class PasswordManager {
 	//TODO Needs encryption
 	PasswordManager(String password){
 		this.password = password;
-		creationDate = LocalDate.now();
+		this.creationDate = LocalDate.now();
 		secQuestions = new String[]{"q1","q2","q3","q4","q5"};
 		secAnswers = new String[]{"a1","a2","a3","a4","a5"};
+	}
+
+	PasswordManager(String password, LocalDate creationDate, String[] secQuestions, String[] secAnswers){
+		this.password     = password;
+		this.creationDate = creationDate;
+		this.secQuestions = secQuestions;
+		this.secAnswers   = secAnswers;
 	}
 	
 	/**
