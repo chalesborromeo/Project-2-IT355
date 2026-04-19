@@ -10,7 +10,29 @@ public class UserAccountService {
     }
 
     // register - creating an account (consider security questions, passwords etc,)
+    public String register() {
+        PasswordManager pm = new PasswordManager(); // prompts user for password + security Qs
 
+        String username = promptUsername();
+        if (username == null) return null;
+
+        if (db.usernameExists(username)) {
+            System.out.println("Username already taken.");
+            return null;
+        }
+
+        String hash = hash(pm.password);
+        db.createUser(username, hash, 100);
+
+        Integer uid = db.findUserId(username, hash);
+        if (uid == null) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, "user not found after create");
+            return null;
+        }
+
+        SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "registered");
+        return sessions.login(uid, username);
+    }
 
     // login - logs in the existing user, 3 tries and age checking
 
