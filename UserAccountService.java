@@ -1,4 +1,5 @@
 public class UserAccountService {
+
     private final UserDatabase db;
     private final SessionManager sessions;
     private final EncryptionService crypto;
@@ -9,10 +10,14 @@ public class UserAccountService {
         this.crypto = crypto;
     }
 
-    // register - creating an account (consider security questions, passwords etc,)
+    /**
+     * Registers a new user.
+     * Uses PasswordManager to collect and validate the password and security
+     * questions interactively, then persists the hashed credentials.
+     *
+     * @return session ID if registration + auto-login succeeded, null otherwise
+     */
     public String register() {
-        PasswordManager pm = new PasswordManager(); // prompts user for password + security Qs
-
         String username = promptUsername();
         if (username == null) return null;
 
@@ -20,6 +25,8 @@ public class UserAccountService {
             System.out.println("Username already taken.");
             return null;
         }
+
+        PasswordManager pm = new PasswordManager();
 
         String hash = hash(pm.password);
         db.createUser(username, hash, 100);
@@ -34,7 +41,13 @@ public class UserAccountService {
         return sessions.login(uid, username);
     }
 
-    // login - logs in the existing user, 3 tries and age checking
+    /**
+     * Logs in an existing user.
+     * Delegates the interactive login attempt (3 tries, age check) to
+     * PasswordManager, then verifies the resulting hash against the database.
+     *
+     * @return session ID on success, null on failure
+     */
     public String login() {
         String username = promptUsername();
         if (username == null) return null;
@@ -76,8 +89,13 @@ public class UserAccountService {
         return sessions.login(uid, username);
     }
 
-
-    // forgot password - account recovery logic, should take the user's new password and hash
+    /**
+     * Explicit forgot-password / account-recovery flow.
+     * Runs PasswordManager's security question gate and, on success,
+     * persists the new password hash to the database.
+     *
+     * @return true if the reset completed successfully
+     */
     public boolean forgotPassword(String username) {
         String hash = db.getPasswordHash(username);
         if (hash == null) {
@@ -103,18 +121,25 @@ public class UserAccountService {
         return true;
     }
 
-
-    // validate session - validates the active session, should return null if the session is expired
+    /**
+     * Validates an active session. Delegates to SessionManager.
+     * Returns null and logs if the session is missing or expired.
+     */
     public SessionManager.Session validateSession(String sid) {
         return sessions.validate(sid);
     }
-    
-    // log out - will allow users to log out and properly invalidate the current session
+
+    /**
+     * Logs out and invalidates the session.
+     */
     public void logout(String sid) {
         sessions.logout(sid);
     }
 
-    // prompt username - simple username entry 
+    /**
+     * Prompts for a username via stdin.
+     * Returns null if the input is empty.
+     */
     private String promptUsername() {
         java.util.Scanner in = new java.util.Scanner(System.in);
         System.out.print("Username: ");
@@ -126,8 +151,11 @@ public class UserAccountService {
         return username;
     }
 
-    // load password manager - reconstructs passwordManager backed with the stored credentials
-        // this would be swapped for a proper database backed construction
+    /**
+     * Reconstructs a PasswordManager backed by stored credentials.
+     * Swap this for a proper DB-backed construction once PasswordManager
+     * supports injected state.
+     */
     private PasswordManager loadPasswordManager(String username, String storedHash) {
         // Stub: uses the convenience constructor.
         // TODO: load security questions/answers from DB once UserDatabase
@@ -135,7 +163,11 @@ public class UserAccountService {
         return new PasswordManager(storedHash);
     }
 
-    // hash - should be able to hash a password
+    /**
+     * Hashes a plaintext password.
+     * Placeholder matching the hashStub in Main — replace with Rachel's
+     * CWE-836 salted hash implementation.
+     */
     private static String hash(String password) {
         return "stub:" + password;
     }
