@@ -35,9 +35,73 @@ public class UserAccountService {
     }
 
     // login - logs in the existing user, 3 tries and age checking
+    public String login() {
+        String username = promptUsername();
+        if (username == null) return null;
+
+        String hash = db.getPasswordHash(username);
+        if (hash == null) {
+            // Don't reveal whether the username exists.
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, "unknown user");
+            System.out.println("Login failed.");
+            return null;
+        }
+
+        // Reconstruct a PasswordManager with the stored hash so loginAttempt()
+        // can compare against it. Security Qs are loaded from the DB.
+        PasswordManager pm = loadPasswordManager(username, hash);
+        if (pm == null) return null;
+
+        boolean ok = pm.loginAttempt();
+        if (!ok) {
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, null);
+            System.out.println("Login failed.");
+            return null;
+        }
+
+        // If loginAttempt triggered a reset internally, persist the new hash.
+        String currentHash = hash(pm.password);
+        if (!currentHash.equals(hash)) {
+            db.updatePasswordHash(username, currentHash);
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "post-reset login");
+        }
+
+        Integer uid = db.findUserId(username, currentHash);
+        if (uid == null) {
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, "hash mismatch after reset");
+            return null;
+        }
+
+        SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, null);
+        return sessions.login(uid, username);
+    }
 
 
     // forgot password - account recovery logic, should take the user's new password and hash
+    public boolean forgotPassword(String username) {
+        String hash = db.getPasswordHash(username);
+        if (hash == null) {
+            // Same response regardless of whether the account exists.
+            System.out.println("If that account exists, a reset has been initiated.");
+            return false;
+        }
+
+        PasswordManager pm = loadPasswordManager(username, hash);
+        if (pm == null) return false;
+
+        boolean ok = pm.resetPassword();
+        if (!ok) {
+            SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY, username,
+                    "failed password reset attempt");
+            System.out.println("Reset failed — security questions incorrect.");
+            return false;
+        }
+
+        db.updatePasswordHash(username, hash(pm.password));
+        SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "password reset");
+        System.out.println("Password reset successfully.");
+        return true;
+    }
 
 
     // validate session - validates the active session, should return null if the session is expired
