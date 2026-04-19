@@ -155,6 +155,75 @@ public class UserDatabase implements AutoCloseable {
         }
     }
 
+
+    /**
+     * Returns the security questions for a given username as a String array,
+     * or null if none are stored. Questions are stored plaintext — only answers
+     * are sensitive and encrypted.
+     */
+    public String[] getSecurityQuestions(String username) {
+        String sql = "SELECT security_questions FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String raw = rs.getString("security_questions");
+                    return raw != null ? raw.split("\\|", -1) : null;
+                }
+            }
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Returns the decrypted security answers for a given username as a String
+     * array, or null if none are stored.
+     * CWE-312: answers are stored encrypted and decrypted on retrieval.
+     */
+    public String[] getSecurityAnswers(String username) {
+        String sql = "SELECT security_answers_enc FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String enc = rs.getString("security_answers_enc");
+                    if (enc == null) return null;
+                    String decrypted = crypto.decrypt(enc);
+                    return decrypted.split("\\|", -1);
+                }
+            }
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Persists security questions and encrypted answers for a given username.
+     * Called during registration (after PasswordManager collects them) and
+     * optionally after a successful password reset.
+     * CWE-312: answers are encrypted before storage.
+     *
+     * @param username  the account to update
+     * @param questions plaintext questions (stored as-is)
+     * @param answers   plaintext answers (encrypted before write)
+     */
+    public void updateSecurityQA(String username, String[] questions, String[] answers) {
+        String joinedQuestions = String.join("|", questions);
+        String joinedAnswers   = String.join("|", answers);
+        String sql = "UPDATE users SET security_questions = ?, security_answers_enc = ? WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, joinedQuestions);
+            ps.setString(2, crypto.encrypt(joinedAnswers));
+            ps.setString(3, username);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
+        }
+    }
+
     @Override
     public void close() throws SQLException {
         conn.close();
