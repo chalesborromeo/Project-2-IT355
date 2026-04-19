@@ -32,6 +32,8 @@ public class UserDatabase implements AutoCloseable {
                 "  username TEXT UNIQUE NOT NULL," +
                 "  password_hash TEXT NOT NULL," +
                 "  balance_enc TEXT NOT NULL" +
+                "  security_questions TEXT," +
+                "  security_answers_enc TEXT" +
                 ")");
             s.execute(
                 "CREATE TABLE IF NOT EXISTS spin_history (" +
@@ -125,6 +127,31 @@ public class UserDatabase implements AutoCloseable {
             ps.executeUpdate();
         } catch (SQLException e) {
             SecurityLogger.log(SecurityLogger.Event.DB_ERROR, String.valueOf(userId), e.getMessage());
+        }
+    }
+
+    public String getPasswordHash(String username){
+        String sql = "SELECT password_hash FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)){
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString("password_hash") : null;
+            }
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
+            return null;
+        }
+    }
+
+    public void updatePasswordHash(String username, String newHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newHash);
+            ps.setString(2, username);
+            ps.executeUpdate();
+            SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "password hash updated");
+        } catch (SQLException e) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, e.getMessage());
         }
     }
 
