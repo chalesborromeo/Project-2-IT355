@@ -11,9 +11,9 @@ public class Main {
         SessionManager sessions = new SessionManager();
 
         try (UserDatabase db = new UserDatabase(crypto);
-             Scanner in = new Scanner(System.in)) {
+            Scanner in = new Scanner(System.in)) {
 
-            UserAccountService accountService = new UserAccountService(db, sessions, crypto);
+            UserAccountService accountService = new UserAccountService(db, sessions, crypto, in);
 
             System.out.println("1) Register new account");
             System.out.println("2) Log in");

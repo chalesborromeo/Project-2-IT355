@@ -1,13 +1,19 @@
+import java.util.Scanner;
+
 public class UserAccountService {
 
     private final UserDatabase db;
     private final SessionManager sessions;
     private final EncryptionService crypto;
+    private final AuthManager auth;
+    private final Scanner scanner;
 
-    public UserAccountService(UserDatabase db, SessionManager sessions, EncryptionService crypto) {
+    public UserAccountService(UserDatabase db, SessionManager sessions, EncryptionService crypto, Scanner scanner) {
         this.db = db;
         this.sessions = sessions;
         this.crypto = crypto;
+        this.auth = new AuthManager(db, scanner);
+        this.scanner = scanner;
     }
 
     /**
@@ -28,8 +34,14 @@ public class UserAccountService {
 
         PasswordManager pm = new PasswordManager();
 
-        String hash = hash(pm.password);
-        db.createUser(username, hash, 100);
+        /**
+         * Mitigates CWE-836 and CWE-328 by hashing the password before 
+         * storing it in the database.
+         * Also mitgates CWE-178 by normalizing the username to lowercase 
+         * before storing.
+         */
+        String hash = PasswordManager.hash(pm.password);
+        db.createUser(username.toLowerCase(), hash, 100);
 
         Integer uid = db.findUserId(username, hash);
         if (uid == null) {
@@ -52,36 +64,15 @@ public class UserAccountService {
         String username = promptUsername();
         if (username == null) return null;
 
-        String hash = db.getPasswordHash(username);
-        if (hash == null) {
+        System.out.print("Enter Password: ");
+        String password = scanner.nextLine();
+
+        Integer uid = auth.login(username, password);
+
+        if (uid == null) {
             // Don't reveal whether the username exists.
             SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, "unknown user");
             System.out.println("Login failed.");
-            return null;
-        }
-
-        // Reconstruct a PasswordManager with the stored hash so loginAttempt()
-        // can compare against it. Security Qs are loaded from the DB.
-        PasswordManager pm = loadPasswordManager(username, hash);
-        if (pm == null) return null;
-
-        boolean ok = pm.loginAttempt();
-        if (!ok) {
-            SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, null);
-            System.out.println("Login failed.");
-            return null;
-        }
-
-        // If loginAttempt triggered a reset internally, persist the new hash.
-        String currentHash = hash(pm.password);
-        if (!currentHash.equals(hash)) {
-            db.updatePasswordHash(username, currentHash);
-            SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "post-reset login");
-        }
-
-        Integer uid = db.findUserId(username, currentHash);
-        if (uid == null) {
-            SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, username, "hash mismatch after reset");
             return null;
         }
 
@@ -105,17 +96,12 @@ public class UserAccountService {
         }
 
         PasswordManager pm = loadPasswordManager(username, hash);
-        if (pm == null) return false;
-
-        boolean ok = pm.resetPassword();
-        if (!ok) {
-            SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY, username,
-                    "failed password reset attempt");
-            System.out.println("Reset failed — security questions incorrect.");
+        if (!pm.resetPassword()) {
+            SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY, username, "Password reset failed.");
             return false;
         }
 
-        db.updatePasswordHash(username, hash(pm.password));
+        db.updatePasswordHash(username, PasswordManager.hash(pm.password));
         SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "password reset");
         System.out.println("Password reset successfully.");
         return true;
@@ -141,9 +127,8 @@ public class UserAccountService {
      * Returns null if the input is empty.
      */
     private String promptUsername() {
-        java.util.Scanner in = new java.util.Scanner(System.in);
         System.out.print("Username: ");
-        String username = in.nextLine().trim();
+        String username = scanner.nextLine().trim();
         if (username.isEmpty()) {
             System.out.println("Username cannot be empty.");
             return null;
@@ -156,19 +141,11 @@ public class UserAccountService {
      * Swap this for a proper DB-backed construction once PasswordManager
      * supports injected state.
      */
-    private PasswordManager loadPasswordManager(String username, String storedHash) {
+    private PasswordManager loadPasswordManager(String username, String hash) {
         // Stub: uses the convenience constructor.
         // TODO: load security questions/answers from DB once UserDatabase
         //       exposes getSecurityQuestions(username).
-        return new PasswordManager(storedHash);
+        return new PasswordManager(hash);
     }
 
-    /**
-     * Hashes a plaintext password.
-     * Placeholder matching the hashStub in Main — replace with Rachel's
-     * CWE-836 salted hash implementation.
-     */
-    private static String hash(String password) {
-        return "stub:" + password;
-    }
 }
