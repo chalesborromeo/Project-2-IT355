@@ -1,5 +1,6 @@
 import java.time.LocalDate;
 import java.util.Scanner;
+import java.security.MessageDigest;
 
 //TODO Many methods will need encryption.
 public class PasswordManager {
@@ -30,6 +31,27 @@ public class PasswordManager {
 		secAnswers = new String[]{"a1","a2","a3","a4","a5"};
 	}
 	
+	/**
+	 * Hashes a password using SHA-256.
+	 * Mitigates CWE-328 by ensuring a strong hashing algorithm is used
+	 * @param password the raw password to hash
+	 * @return the hashed password as a hex string
+	 */
+
+	public static String hash(String password) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hashBytes = md.digest(password.getBytes("UTF-8"));
+			StringBuilder sb = new StringBuilder();
+			for (byte b : hashBytes) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+}
+		catch (Exception e) {
+			throw new RuntimeException("Error hashing password", e);
+		}
+	}
 	/**
 	 * Login sequence, allows 3 attempts before password reset
 	 * @return whether the login was successful

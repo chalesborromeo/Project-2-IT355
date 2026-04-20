@@ -11,7 +11,7 @@ public class Main {
         SessionManager sessions = new SessionManager();
 
         try (UserDatabase db = new UserDatabase(crypto);
-             Scanner in = new Scanner(System.in)) {
+            Scanner in = new Scanner(System.in)) {
 
             System.out.println("1) Register new account");
             System.out.println("2) Log in");
@@ -35,18 +35,18 @@ public class Main {
                     System.out.println("Username already taken.");
                     return;
                 }
-                // Rachel's CWE-836 module supplies the real password hashing;
-                // we use a stub so the two pieces can be swapped without
-                // touching this file.
-                db.createUser(user, hashStub(pass), 100);
-                uid = db.findUserId(user, hashStub(pass));
+                // stub replaced with mitigation of CWE-836 and 
+                // CWE-328 by hashing the password properly before storing
+                db.createUser(user, PasswordManager.hash(pass), 100);
+                AuthManager auth = new AuthManager(db);
+                uid = auth.login(user, pass);
                 System.out.println("Account created. Logging in...");
             } else {
                 System.out.print("username: ");
                 user = in.nextLine().trim();
                 System.out.print("password: ");
                 pass = in.nextLine().trim();
-                uid = db.findUserId(user, hashStub(pass));
+                uid = db.findUserId(user, PasswordManager.hash(pass));
             }
 
             if (uid == null) {
@@ -88,11 +88,5 @@ public class Main {
             }
             sessions.logout(sid);
         }
-    }
-
-    // Placeholder — Rachel's CWE-836 implementation swaps this for a
-    // real salted hash comparison.
-    private static String hashStub(String password) {
-        return "stub:" + password;
     }
 }
