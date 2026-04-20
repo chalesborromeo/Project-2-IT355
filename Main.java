@@ -1,8 +1,5 @@
 import java.util.Scanner;
 
-// Demo wiring for Charles's CWE modules. This ties the existing
-// SlotMachine game into a login / session / audit-logged flow so
-// each of the 5 CWEs can be observed end-to-end.
 public class Main {
     private static final int STAKE = 5;
 
