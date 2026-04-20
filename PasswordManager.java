@@ -9,6 +9,8 @@ public class PasswordManager {
 	String[] secQuestions = new String[5];
 	String[] secAnswers = new String[5];
 	
+    private final Scanner input = new Scanner(System.in);
+
 	
 	/**
 	 * Default constructor, requires user input
@@ -26,9 +28,16 @@ public class PasswordManager {
 	//TODO Needs encryption
 	PasswordManager(String password){
 		this.password = password;
-		creationDate = LocalDate.now();
+		this.creationDate = LocalDate.now();
 		secQuestions = new String[]{"q1","q2","q3","q4","q5"};
 		secAnswers = new String[]{"a1","a2","a3","a4","a5"};
+	}
+
+	PasswordManager(String password, LocalDate creationDate, String[] secQuestions, String[] secAnswers){
+		this.password     = password;
+		this.creationDate = creationDate;
+		this.secQuestions = secQuestions;
+		this.secAnswers   = secAnswers;
 	}
 	
 	/**
@@ -57,34 +66,29 @@ public class PasswordManager {
 	 * @return whether the login was successful
 	 */
 	//TODO Needs encryption
-	public boolean loginAttempt() {
-		Scanner input = new Scanner(System.in);
-		System.out.println("Enter Password:");
-		
-		if(input.nextLine().equals(password)) {
-			input.close();
-			return true;
-		}
-		int attempts = 2;
-		while(attempts>0) {
-			System.out.println("Incorrect password. Try again. Attempts remaining: "+attempts);
-			System.out.println("Enter Password:");
-			if(input.nextLine().equals(password)) {
-				input.close();
-				return checkAge();
-			}
-			attempts--;
-		}
-		
-		System.out.print("Would you like to reset your password? Y/N");
-		if(input.next().equalsIgnoreCase("y")) {
-			input.close();
-			return resetPassword();
-		}
-		
-		input.close();
-		return false;
-	}
+    public boolean loginAttempt() {
+        System.out.println("Enter Password:");
+        if (input.nextLine().equals(password)) {
+            return checkAge();
+        }
+
+        int attempts = 2;
+        while (attempts > 0) {
+            System.out.println("Incorrect password. Try again. Attempts remaining: " + attempts);
+            System.out.println("Enter Password:");
+            if (input.nextLine().equals(password)) {
+                return checkAge();
+            }
+            attempts--;
+        }
+
+        System.out.print("Would you like to reset your password? Y/N: ");
+        if (input.nextLine().trim().equalsIgnoreCase("y")) {
+            return resetPassword();
+        }
+
+        return false;
+    }
 	
 	/**
 	 * If password is over 70 days old, issues a warning. If over 90, forces a password rest.
@@ -127,52 +131,39 @@ public class PasswordManager {
 	 * 
 	 * @return whether the answers were all correct
 	 */
-	private boolean securityQuestions() {
-		Scanner input = new Scanner(System.in);
-		for(int i=0;i<5;i++) {
-			System.out.println("Question "+(i+1)+": "+secQuestions[i]);
-			
-			System.out.println("Answer: ");
-			if(secAnswers[i].equals(input.nextLine())) { 
-				if(i==4) {
-					input.close();
-					return true;
-				}
-			}
-			else break;
-		}
-		input.close();
-		return false;
-	}
+    private boolean securityQuestions() {
+        for (int i = 0; i < 5; i++) {
+            System.out.println("Question " + (i + 1) + ": " + secQuestions[i]);
+            System.out.print("Answer: ");
+            if (secAnswers[i].equals(input.nextLine())) {
+                if (i == 4) return true;
+            } else break;
+        }
+        return false;
+    }
 	
 	/**
 	 * Sets the password.
 	 */
 	//TODO Needs encryption
-	private void setPassword() {
-		Scanner input = new Scanner(System.in);
-		System.out.println("Enter new password:");
-		password = input.nextLine();
-		input.close();
-	}
+    private void setPassword() {
+        System.out.println("Enter new password:");
+        password = input.nextLine();
+    }
 
 	/**
 	 * Sets the security questions and answers.
 	 */
 	//TODO needs encryption for answers
-	private void setQuestions() {
-		Scanner input = new Scanner(System.in);
-		
-		System.out.println("Please enter 5 security questions and their answers.");
-		for(int i=0;i<5;i++) {
-			System.out.println("Question "+(i+1)+": ");
-			secQuestions[i] = input.nextLine();
-			System.out.println("Answer: ");
-			secAnswers[i] = input.nextLine();
-		}
-		
-		input.close();
-	}
+    private void setQuestions() {
+        System.out.println("Please enter 5 security questions and their answers.");
+        for (int i = 0; i < 5; i++) {
+            System.out.println("Question " + (i + 1) + ": ");
+            secQuestions[i] = input.nextLine();
+            System.out.print("Answer: ");
+            secAnswers[i] = input.nextLine();
+        }
+    }
 	
 	/**
 	 * Debug method. Makes a password's date outdated.

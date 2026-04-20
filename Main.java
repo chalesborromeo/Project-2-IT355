@@ -13,63 +13,54 @@ public class Main {
         try (UserDatabase db = new UserDatabase(crypto);
             Scanner in = new Scanner(System.in)) {
 
+            UserAccountService accountService = new UserAccountService(db, sessions, crypto, in);
+
             System.out.println("1) Register new account");
             System.out.println("2) Log in");
+            System.out.println("3) Forgot password");
             System.out.print("> ");
             String choice = in.nextLine().trim();
 
-            String user;
-            String pass;
-            Integer uid;
+            String sid = null;
 
-            if (choice.equals("1")) {
-                System.out.print("new username: ");
-                user = in.nextLine().trim();
-                System.out.print("new password: ");
-                pass = in.nextLine().trim();
-                if (user.isEmpty() || pass.isEmpty()) {
-                    System.out.println("Username and password cannot be empty.");
+            switch (choice) {
+                case "1" -> sid = accountService.register();
+                case "2" -> sid = accountService.login();
+                case "3" -> {
+                    System.out.print("Username: ");
+                    String username = in.nextLine().trim();
+                    accountService.forgotPassword(username);
+                    System.out.println("Please log in with your new password.");
+                    sid = accountService.login();
+                }
+                default -> {
+                    System.out.println("Invalid option.");
                     return;
                 }
-                if (db.usernameExists(user)) {
-                    System.out.println("Username already taken.");
-                    return;
-                }
-                // stub replaced with mitigation of CWE-836 and 
-                // CWE-328 by hashing the password properly before storing
-                db.createUser(user, PasswordManager.hash(pass), 100);
-                AuthManager auth = new AuthManager(db);
-                uid = auth.login(user, pass);
-                System.out.println("Account created. Logging in...");
-            } else {
-                System.out.print("username: ");
-                user = in.nextLine().trim();
-                System.out.print("password: ");
-                pass = in.nextLine().trim();
-                uid = db.findUserId(user, PasswordManager.hash(pass));
             }
 
-            if (uid == null) {
-                SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, user, null);
-                System.out.println("Login failed.");
+            if (sid == null) {
+                System.out.println("Could not start session. Exiting.");
                 return;
             }
-            SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, user, null);
-            String sid = sessions.login(uid, user);
 
+            // Game loop — session validated on every spin.
             SlotMachine machine = new SlotMachine(STAKE);
             while (true) {
-                SessionManager.Session s = sessions.validate(sid);
+                SessionManager.Session s = accountService.validateSession(sid);
                 if (s == null) {
                     System.out.println("Session expired — please log in again.");
                     break;
                 }
+
                 int balance = db.getBalance(s.userId());
                 System.out.println("Balance: " + balance);
                 System.out.print("spin / quit > ");
                 String cmd = in.nextLine().trim();
+
                 if (cmd.equalsIgnoreCase("quit")) break;
                 if (!cmd.equalsIgnoreCase("spin")) continue;
+
                 if (balance < STAKE) {
                     System.out.println("Out of credits.");
                     break;
@@ -82,11 +73,12 @@ public class Main {
 
                 // Flag unusually large wins for manual review (CWE-778).
                 if (winnings >= STAKE * 7) {
-                    SecurityLogger.log(SecurityLogger.Event.LARGE_WIN, user,
+                    SecurityLogger.log(SecurityLogger.Event.LARGE_WIN, s.username(),
                             "stake=" + STAKE + " winnings=" + winnings);
                 }
             }
-            sessions.logout(sid);
+
+            accountService.logout(sid);
         }
     }
 }

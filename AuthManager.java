@@ -17,7 +17,7 @@ import java.util.Scanner;
 public class AuthManager {
 
     private final UserDatabase db;
-    private final Scanner scanner = new Scanner(System.in);
+    private final Scanner scanner;
     // For demo of CWE-308 mitigation purposes, we use a fixed OTP. In a real system, 
     // this would be generated dynamically.
     private final String expectedOTP = "123456";
@@ -28,8 +28,9 @@ public class AuthManager {
      * @param scanner reference to a Scanner for user input 
      * (prevents resource leaks)
      */
-    public AuthManager(UserDatabase db) {
+    public AuthManager(UserDatabase db, Scanner scanner) {
         this.db = db;
+        this.scanner = scanner;
     }
 
     /**
@@ -52,9 +53,9 @@ public class AuthManager {
         String hashedPassword = PasswordManager.hash(password);
 
         // Validate credentials against database
-        Integer userId = db.findUserId(normalizedUsername, hashedPassword);
+        Integer uid = db.findUserId(normalizedUsername, hashedPassword);
 
-        if (userId == null) {
+        if (uid == null) {
             SecurityLogger.log(SecurityLogger.Event.LOGIN_FAILURE, normalizedUsername, "Invalid credentials");
             return null;
         }
@@ -69,7 +70,7 @@ public class AuthManager {
         enforceRolePolicy(normalizedUsername);
 
         SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, normalizedUsername, "Authenticated");
-        return userId;
+        return uid;
     }
 
     /**
