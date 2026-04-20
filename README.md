@@ -1,12 +1,5 @@
 # Project-2-IT355
 
-## Charles's CWE modules
-
-- **CWE-89 (SQL Injection)** — [UserDatabase.java](UserDatabase.java): all queries use `PreparedStatement` with `?` placeholders.
-- **CWE-312 (Cleartext Storage)** — [EncryptionService.java](EncryptionService.java), [UserDatabase.java](UserDatabase.java): account balance is AES-GCM encrypted before persisting.
-- **CWE-384 (Session Fixation)** — [SessionManager.java](SessionManager.java): fresh `SecureRandom` session ID minted on every login; old sessions invalidated.
-- **CWE-613 (Insufficient Session Expiration)** — [SessionManager.java](SessionManager.java): idle timeout (15 min) + absolute timeout (1 hr).
-- **CWE-778 (Insufficient Logging)** — [SecurityLogger.java](SecurityLogger.java): append-only `security.log` of auth, session, and suspicious events.
 
 ## Running the demo
 
