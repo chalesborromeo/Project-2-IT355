@@ -1,7 +1,14 @@
 
 import java.security.SecureRandom;
 
-
+/**
+ * Adheres to 
+ * CWE-1241 - Use of Predictable Algorithm in Random Number Generator
+ * CWE-342 - Predictable Exact Value from Previous Values
+ * CWE-343 - Predictable Value Range from Previous Values
+ * CWE-341 - Predictable from Observable State
+ * Through the use of a TRNG instead of a PRNG
+ */
 public class SlotMachine {
 	private int stakes;
 	private final SecureRandom rand = new SecureRandom();

@@ -52,7 +52,8 @@ public class UserAccountService {
         SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "registered");
         return sessions.login(uid, username);
     }
-
+    
+    // CWE-307 - Improper Restriction of Excessive Authentication Attempts
     /**
      * Logs in an existing user.
      * Delegates the interactive login attempt (3 tries, age check) to
