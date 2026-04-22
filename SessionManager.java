@@ -78,6 +78,19 @@ public class SessionManager {
         }
     }
 
+    // CWE-384-adjacent: wipe every session for a user (e.g. after a
+    // password change) so stolen tokens cannot outlive the credential.
+    public synchronized void logoutAll(String username) {
+        sessions.entrySet().removeIf(e -> {
+            if (e.getValue().username.equals(username)) {
+                SecurityLogger.log(SecurityLogger.Event.LOGOUT, username,
+                        "force-logout on credential change");
+                return true;
+            }
+            return false;
+        });
+    }
+
     private String newSessionId() {
         byte[] bytes = new byte[SESSION_ID_BYTES];
         rng.nextBytes(bytes);

@@ -32,18 +32,20 @@ public class UserAccountService {
             return null;
         }
 
-        PasswordManager pm = new PasswordManager();
+        PasswordManager pm = new PasswordManager(crypto, scanner);
 
         /**
-         * Mitigates CWE-836 and CWE-328 by hashing the password before 
+         * Mitigates CWE-836 and CWE-328 by hashing the password before
          * storing it in the database.
-         * Also mitgates CWE-178 by normalizing the username to lowercase 
+         * Also mitgates CWE-178 by normalizing the username to lowercase
          * before storing.
          */
-        String hash = PasswordManager.hash(pm.password);
-        db.createUser(username.toLowerCase(), hash, 100);
+        String hash = pm.getPasswordHash();
+        String normalized = username.toLowerCase();
+        db.createUser(normalized, hash, 100);
+        db.updateSecurityQA(normalized, pm.getSecurityQuestions(), decryptAnswers(pm.getEncryptedAnswers()));
 
-        Integer uid = db.findUserId(username, hash);
+        Integer uid = db.findUserId(normalized, hash);
         if (uid == null) {
             SecurityLogger.log(SecurityLogger.Event.DB_ERROR, username, "user not found after create");
             return null;
@@ -97,13 +99,12 @@ public class UserAccountService {
         }
 
         PasswordManager pm = loadPasswordManager(username, hash);
-        if (!pm.resetPassword()) {
+        if (pm == null || !pm.resetPassword()) {
             SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY, username, "Password reset failed.");
             return false;
         }
 
-        db.updatePasswordHash(username, PasswordManager.hash(pm.password));
-        SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "password reset");
+        // DB + session updates happen inside pm.resetPassword() now
         System.out.println("Password reset successfully.");
         return true;
     }
@@ -139,14 +140,25 @@ public class UserAccountService {
 
     /**
      * Reconstructs a PasswordManager backed by stored credentials.
-     * Swap this for a proper DB-backed construction once PasswordManager
-     * supports injected state.
      */
     private PasswordManager loadPasswordManager(String username, String hash) {
-        // Stub: uses the convenience constructor.
-        // TODO: load security questions/answers from DB once UserDatabase
-        //       exposes getSecurityQuestions(username).
-        return new PasswordManager(hash);
+        String normalized = username.toLowerCase();
+        String[] questions = db.getSecurityQuestions(normalized);
+        String[] plain     = db.getSecurityAnswers(normalized);
+        if (questions == null || plain == null) return null;
+
+        // Re-encrypt with fresh IVs so PasswordManager holds ciphertext in memory.
+        String[] encrypted = new String[plain.length];
+        for (int i = 0; i < plain.length; i++) encrypted[i] = crypto.encrypt(plain[i]);
+
+        return new PasswordManager(crypto, db, sessions, scanner,
+                normalized, hash, java.time.LocalDate.now(), questions, encrypted);
+    }
+
+    private String[] decryptAnswers(String[] encrypted) {
+        String[] plain = new String[encrypted.length];
+        for (int i = 0; i < encrypted.length; i++) plain[i] = crypto.decrypt(encrypted[i]);
+        return plain;
     }
 
 }
