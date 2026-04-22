@@ -64,6 +64,12 @@ public class UserDatabase implements AutoCloseable {
     }
 
     public Integer findUserId(String username, String passwordHash) {
+        // CWE-233: Improper Handline of Parameters - reject null parameters before trying to use them
+        if (username == null || passwordHash == null) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, "(null)", "null parameter passed to findUserId");
+            return null;
+        }
+
         String sql = "SELECT id FROM users WHERE username = ? AND password_hash = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -119,6 +125,12 @@ public class UserDatabase implements AutoCloseable {
     }
 
     public void updateBalance(int userId, int newBalance) {
+        // CWE-229: Improper Handling of Values - reject balance values outside a valid range
+        if (newBalance < 0 || newBalance > 1000000) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, String.valueOf(userId), "balance out of range: " + newBalance);
+            return;
+        }
+
         String sql = "UPDATE users SET balance_enc = ? WHERE id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, crypto.encrypt(String.valueOf(newBalance)));
@@ -132,6 +144,12 @@ public class UserDatabase implements AutoCloseable {
     }
 
     public void recordSpin(int userId, int stake, int winnings) {
+        // CWE-233: Improper Handling of Parameters - reject invalid stake and winnings values before trying to use them
+        if (stake <= 0 || winnings < 0) {
+            SecurityLogger.log(SecurityLogger.Event.DB_ERROR, String.valueOf(userId), "invalid stake or winnings: stake=" + stake + "winnings: " + winnings);
+            return;
+        }
+
         String sql = "INSERT INTO spin_history(user_id, stake, winnings) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);

@@ -23,18 +23,21 @@ public class SessionManager {
     public static final class Session {
         private final int userId;
         private final String username;
+        private final String role;
         private final long createdAt;
         private long lastActivity;
 
-        Session(int userId, String username) {
+        Session(int userId, String username, String role) {
             this.userId = userId;
             this.username = username;
+            this.role = role;
             this.createdAt = System.currentTimeMillis();
             this.lastActivity = this.createdAt;
         }
 
         public int userId() { return userId; }
         public String username() { return username; }
+        public String role() { return role; }
     }
 
     // CWE-384: destroy any existing session for this user, then mint a
@@ -42,7 +45,10 @@ public class SessionManager {
     public synchronized String login(int userId, String username) {
         sessions.values().removeIf(s -> s.userId == userId);
         String sid = newSessionId();
-        sessions.put(sid, new Session(userId, username));
+
+        //CWE-267: Privilege Defined with Unsafe Actions - attach a role to the session so actions can be gated by privilege level
+        String role = username.equals("admin") ? "ADMIN" : "PLAYER";
+        sessions.put(sid, new Session(userId, username, role));
         SecurityLogger.log(SecurityLogger.Event.SESSION_CREATED, username, "sid=" + shorten(sid));
         return sid;
     }
