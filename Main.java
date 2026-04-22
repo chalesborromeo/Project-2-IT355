@@ -4,6 +4,12 @@ public class Main {
     private static final int STAKE = 5;
 
     public static void main(String[] args) throws Exception {
+        // CWE-250: Execution with Unnecessary Privileges - warn if the app is running as an admin user
+        String user = System.getProperty("user.name", "");
+        if ("root".equalsIgnoreCase(user) || "administrator".equalsIgnoreCase(user)) {
+            System.err.println("Warning: running as " + user + ". This app does not need admin privileges."); 
+        }
+
         EncryptionService crypto = new EncryptionService();
         SessionManager sessions = new SessionManager();
 
@@ -57,6 +63,12 @@ public class Main {
 
                 if (cmd.equalsIgnoreCase("quit")) break;
                 if (!cmd.equalsIgnoreCase("spin")) continue;
+
+                // CWE-267: Privilege Defined with Unsafe Actions - only allow users with a valid role to spin
+                if (!s.role().equals("PLAYER") && !s.role().equals("ADMIN")) {
+                    System.out.println("Access denied: insufficient role to play.");
+                    continue;
+                }
 
                 if (balance < STAKE) {
                     System.out.println("Out of credits.");

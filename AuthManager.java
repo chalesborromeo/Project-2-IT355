@@ -108,5 +108,9 @@ public class AuthManager {
             SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY,
                     username, "Admin access granted");
         }
+
+        // CWE-266: Incorrect Privilege Assignment - assign roles based on username, not user input
+        String role = username.equals("admin") ? "ADMIN" : "PLAYER";
+        SecurityLogger.log(SecurityLogger.Event.LOGIN_SUCCESS, username, "role assigned: " + role);
     }
 }

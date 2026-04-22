@@ -148,7 +148,7 @@ public class PasswordManager {
 	//TODO Needs encryption
     private void setPassword() {
         System.out.println("Enter new password:");
-		boolean strongPassword = false
+		boolean strongPassword = false;
 		String newPassword = input.nextLine();
 		while (!strongPassword){
 			if(newPassword.length()>=8&&newPassword.matches(".*\\d.*"))
