@@ -197,8 +197,18 @@ public class PasswordManager {
 	 */
 	//TODO Needs encryption
     private void setPassword() {
-        System.out.println("Enter new password:");
-        password = input.nextLine();
+        
+		String newPassword;
+		boolean strongPassword = false;
+		while(!strongPassword){
+		System.out.println("Enter new password:");
+        String newPassword = input.nextLine();
+		if(newPassword.length>=8 && newPassword.matches(".*\\d.*"))
+			strongPassword = true;
+		else
+			System.out.println("Password must contain at least 8 characters and include at least one digit");
+		}
+		password = newPassword;
     }
 
 	/**
