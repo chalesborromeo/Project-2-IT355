@@ -120,6 +120,10 @@ public class SlotMachine {
 		else if(wheels[3]=='*') {
 			int wheelslot = 0;
 			int highestValue = 0;
+
+			// CWE - 1095 - Joey Pina - (Loop Condition Value Update within the Loop): By having a loop's condition not update inside the same loop we are avoiding 
+			// unpredictable and / or infinite behaviour. This ensures ease of maintainability, although not entirely security, 
+			// it ensures this usage eases the debugging process and reduces potential areas of concern
 			for(int i=0;i<3;i++) {
 				switch(wheels[i]) {
 				case 'L':

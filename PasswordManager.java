@@ -87,7 +87,11 @@ public class PasswordManager {
 		if (matches(input.nextLine())) {
 			return checkAge();
 		}
-
+		
+		// CWE - 645 - Joey Pina - (Overly Restrictive Account Lockout Mechanism): Here we are 
+		// locking out a user from logging in after 3 attempts which is ideal since it allows users
+		// some chances but not enough chances for a hacker to utilize brute force methods of access 
+		// and / or lock a user out immediately
 		int attempts = 2;
 		while (attempts > 0) {
 			System.out.println("Incorrect password. Try again. Attempts remaining: " + attempts);
@@ -198,13 +202,16 @@ public class PasswordManager {
 	//TODO Needs encryption
     private void setPassword() {
         System.out.println("Enter new password:");
-        password = input.nextLine();
+        String password = input.nextLine();
     }
 
 	/**
 	 * Sets the security questions and answers. Answers are encrypted
 	 * before being retained (CWE-312).
 	 */
+	// CWE - 309 - Joey Pina - (Use of Password System for Primary Authentication): By utilizing more than one 
+	// system of authentication (passwords and security questions) we are allowing users more ways to login
+	// to their account and also secure their account from possible attacks
 	private void setQuestions() {
 		System.out.println("Please enter 5 security questions and their answers.");
 		for (int i = 0; i < 5; i++) {
