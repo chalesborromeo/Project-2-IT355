@@ -204,18 +204,22 @@ public class PasswordManager {
 	 */
     private void setPassword() {
         
-		String newPassword;
+		String newPassword = null;
 		boolean strongPassword = false;
 		while(!strongPassword){
 		System.out.println("Enter new password:");
-        String newPassword = input.nextLine();
+        newPassword = input.nextLine();
 			//CWE-521: Passwords are required to be sufficiently complex
-		if(newPassword.length>=8 && newPassword.matches(".*\\d.*"))
+		if(newPassword.length()>=8 && newPassword.matches(".*\\d.*"))
 			strongPassword = true;
 		else
 			System.out.println("Password must contain at least 8 characters and include at least one digit");
 		}
-		passwordHash = hash(newPassword);
+
+		if(newPassword != null)
+			passwordHash = hash(newPassword);
+		else
+			System.out.println("New password has not been provided");
     }
 
 	/**
