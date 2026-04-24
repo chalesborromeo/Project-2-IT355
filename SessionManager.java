@@ -12,6 +12,10 @@ import java.util.Map;
 // an idle timeout (inactivity-based) and an absolute timeout (total
 // lifetime, regardless of activity) so a leaked token cannot be
 // used forever.
+
+// CWE - 1086 - Joey Pina - (Class with Excessive Number of Child Classes): It is recommended that
+// any given class uses 10 or less child classes. This will help reduce complexity and retain it's original
+// scope, which helps maintainability. 
 public class SessionManager {
     public static final long IDLE_TIMEOUT_MS     = 15L * 60 * 1000;   // 15 min
     public static final long ABSOLUTE_TIMEOUT_MS = 60L * 60 * 1000;   // 1 hr

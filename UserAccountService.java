@@ -92,6 +92,11 @@ public class UserAccountService {
      */
     public boolean forgotPassword(String username) {
         String hash = db.getPasswordHash(username);
+
+        // CWE - 480 - Joey Pina - (Use of Incorrect Operator): Using the correct operator ensures expected barrier. In this case if
+        // the operator was incorrect, assignment instead of comparison, we would make security incredibly
+        // vulnerable because hash would then be null. Causing possible hash protected passwords 
+        // become vulnerable and / or unexpected data. 
         if (hash == null) {
             // Same response regardless of whether the account exists.
             System.out.println("If that account exists, a reset has been initiated.");
