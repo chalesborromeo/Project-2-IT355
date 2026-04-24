@@ -85,6 +85,7 @@ public class PasswordManager {
 	public boolean loginAttempt() {
 		System.out.println("Enter Password:");
 		if (matches(input.nextLine())) {
+			//CWE-262: Old passwords are required to be reset.
 			return checkAge();
 		}
 		
@@ -122,6 +123,7 @@ public class PasswordManager {
 	 * If password is over 70 days old, issues a warning. If over 90, forces a password rest.
 	 * @return
 	 */
+	//CWE-263: Password time limit follows CWE's reccomendation of 30-90 days.
 	private boolean checkAge() {
 		LocalDate now = LocalDate.now();
 		if(now.isAfter(creationDate.plusDays(90))) {
@@ -138,6 +140,7 @@ public class PasswordManager {
 	 * @return whether the password was successfully reset
 	 */
 	public boolean resetPassword() {
+		//CWE-620: Resetting the password requires passing the security questions.
 		if(!securityQuestions()) {
 			SecurityLogger.log(SecurityLogger.Event.SUSPICIOUS_ACTIVITY, username,
 					"failed security questions");
@@ -199,10 +202,20 @@ public class PasswordManager {
 	/**
 	 * Sets the password. Only the hash is retained (CWE-312).
 	 */
-	//TODO Needs encryption
     private void setPassword() {
-        System.out.println("Enter new password:");
-        String password = input.nextLine();
+        
+		String newPassword;
+		boolean strongPassword = false;
+		while(!strongPassword){
+		System.out.println("Enter new password:");
+        String newPassword = input.nextLine();
+			//CWE-521: Passwords are required to be sufficiently complex
+		if(newPassword.length>=8 && newPassword.matches(".*\\d.*"))
+			strongPassword = true;
+		else
+			System.out.println("Password must contain at least 8 characters and include at least one digit");
+		}
+		passwordHash = hash(newPassword);
     }
 
 	/**
